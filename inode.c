@@ -1615,6 +1615,7 @@ int fat_fill_super(struct super_block *sb, void *data, int silent, int isvfat,
 	long error;
 	char buf[50];
 
+	printk(KERN_INFO "\nSTUDENT MESSAGE: Filling up the fat super block (file: inode.c/fat_fill_super)");
 	/*
 	 * GFP_KERNEL is ok here, because while we do hold the
 	 * superblock lock, memory pressure can't call back into

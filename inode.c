@@ -182,23 +182,27 @@ static int fat_get_block(struct inode *inode, sector_t iblock,
 
 static int fat_writepage(struct page *page, struct writeback_control *wbc)
 {
+	printk(KERN_INFO "STUDENT MESSAGE: Writing a page to the FAT file system (inode.c/fat_writepage)");
 	return block_write_full_page(page, fat_get_block, wbc);
 }
 
 static int fat_writepages(struct address_space *mapping,
 			  struct writeback_control *wbc)
 {
+	printk(KERN_INFO "STUDENT MESSAGE: Writing multiple pages from the FAT file system (inode.c/fat_writepages)");
 	return mpage_writepages(mapping, wbc, fat_get_block);
 }
 
 static int fat_readpage(struct file *file, struct page *page)
 {
+	printk(KERN_INFO "STUDENT MESSAGE: Reading a page from the FAT file system (inode.c/fat_readpage)");
 	return mpage_readpage(page, fat_get_block);
 }
 
 static int fat_readpages(struct file *file, struct address_space *mapping,
 			 struct list_head *pages, unsigned nr_pages)
 {
+	printk(KERN_INFO "STUDENT MESSAGE: Reading multiple pages from the FAT file system (inode.c/fat_readpages)");
 	return mpage_readpages(mapping, pages, nr_pages, fat_get_block);
 }
 
@@ -218,7 +222,6 @@ static int fat_write_begin(struct file *file, struct address_space *mapping,
 {
 	int err;
 	printk(KERN_INFO "STUDENT MESSAGE: About to write a page into a block(inode.c/fat_write_begin)");
-
 	*pagep = NULL;
 	err = cont_write_begin(file, mapping, pos, len, flags,
 				pagep, fsdata, fat_get_block,
@@ -234,6 +237,7 @@ static int fat_write_end(struct file *file, struct address_space *mapping,
 {
 	struct inode *inode = mapping->host;
 	int err;
+	printk(KERN_INFO "STUDENT MESSAGE: Finalizing write to the FAT file system (inode.c/fat_write_end)");
 	err = generic_write_end(file, mapping, pos, len, copied, pagep, fsdata);
 	if (err < len)
 		fat_write_failed(mapping, pos + len);
@@ -247,12 +251,15 @@ static int fat_write_end(struct file *file, struct address_space *mapping,
 
 static ssize_t fat_direct_IO(struct kiocb *iocb, struct iov_iter *iter)
 {
+	
 	struct file *file = iocb->ki_filp;
 	struct address_space *mapping = file->f_mapping;
 	struct inode *inode = mapping->host;
 	size_t count = iov_iter_count(iter);
 	loff_t offset = iocb->ki_pos;
 	ssize_t ret;
+
+	printk(KERN_INFO "STUDENT MESSAGE: Handling direct I/O operations for the FAT file system (inode.c/fat_direct_IO)");
 
 	if (iov_iter_rw(iter) == WRITE) {
 		/*
@@ -308,6 +315,7 @@ static int fat_get_block_bmap(struct inode *inode, sector_t iblock,
 static sector_t _fat_bmap(struct address_space *mapping, sector_t block)
 {
 	sector_t blocknr;
+	printk(KERN_INFO "STUDENT MESSAGE: Translating a block number in a file to a block number on disk (inode.c/_fat_bmap)");
 
 	/* fat_get_cluster() assumes the requested blocknr isn't truncated. */
 	down_read(&MSDOS_I(mapping->host)->truncate_lock);
@@ -637,6 +645,7 @@ static void fat_free_eofblocks(struct inode *inode)
 
 static void fat_evict_inode(struct inode *inode)
 {
+	printk(KERN_INFO "STUDENT MESSAGE: Evicting inode and cleaning up associated resources for FAT (inode.c/fat_evict_inode)");
 	truncate_inode_pages_final(&inode->i_data);
 	if (!inode->i_nlink) {
 		inode->i_size = 0;
@@ -709,9 +718,8 @@ static void delayed_free(struct rcu_head *p)
 
 static void fat_put_super(struct super_block *sb)
 {
-	printk(KERN_INFO "STUDENT MESSAGE: Releasing the FAT filesystem's superblock (inode.c/fat_put_super)");
 	struct msdos_sb_info *sbi = MSDOS_SB(sb);
-
+	printk(KERN_INFO "STUDENT MESSAGE: Releasing the FAT filesystem's superblock (inode.c/fat_put_super)");
 	fat_set_state(sb, 0, 0);
 
 	iput(sbi->fsinfo_inode);
@@ -724,8 +732,9 @@ static struct kmem_cache *fat_inode_cachep;
 
 static struct inode *fat_alloc_inode(struct super_block *sb)
 {
-	printk(KERN_INFO "STUDENT MESSAGE: Allocating new inode for FAT (inode.c/fat_alloc_inode)");
+	
 	struct msdos_inode_info *ei;
+	printk(KERN_INFO "STUDENT MESSAGE: Allocating new inode for FAT (inode.c/fat_alloc_inode)");
 	ei = kmem_cache_alloc(fat_inode_cachep, GFP_NOFS);
 	if (!ei)
 		return NULL;
@@ -742,6 +751,7 @@ static void fat_i_callback(struct rcu_head *head)
 
 static void fat_destroy_inode(struct inode *inode)
 {
+	printk(KERN_INFO "STUDENT MESSAGE: Destroying inode for FAT (inode.c/fat_destroy_inode)");
 	call_rcu(&inode->i_rcu, fat_i_callback);
 }
 
@@ -784,6 +794,8 @@ static int fat_remount(struct super_block *sb, int *flags, char *data)
 {
 	int new_rdonly;
 	struct msdos_sb_info *sbi = MSDOS_SB(sb);
+	printk(KERN_INFO "STUDENT MESSAGE: Remounting the FAT file system (inode.c/fat_remount)");
+
 	*flags |= MS_NODIRATIME | (sbi->options.isvfat ? 0 : MS_NOATIME);
 
 	sync_filesystem(sb);
@@ -804,6 +816,7 @@ static int fat_statfs(struct dentry *dentry, struct kstatfs *buf)
 	struct super_block *sb = dentry->d_sb;
 	struct msdos_sb_info *sbi = MSDOS_SB(sb);
 	u64 id = huge_encode_dev(sb->s_bdev->bd_dev);
+	printk(KERN_INFO "STUDENT MESSAGE: Gathering file system statistics for FAT (inode.c/fat_statfs)");
 
 	/* If the count of free cluster is still unknown, counts it here. */
 	if (sbi->free_clusters == -1 || !sbi->free_clus_valid) {
@@ -924,6 +937,7 @@ static int fat_show_options(struct seq_file *m, struct dentry *root)
 	struct msdos_sb_info *sbi = MSDOS_SB(root->d_sb);
 	struct fat_mount_options *opts = &sbi->options;
 	int isvfat = opts->isvfat;
+	printk(KERN_INFO "STUDENT MESSAGE: Displaying mount options for FAT file system (inode.c/fat_show_options)");
 
 	if (!uid_eq(opts->fs_uid, GLOBAL_ROOT_UID))
 		seq_printf(m, ",uid=%u",
@@ -1601,7 +1615,6 @@ int fat_fill_super(struct super_block *sb, void *data, int silent, int isvfat,
 	long error;
 	char buf[50];
 
-	printk(KERN_INFO "\nSTUDENT MESSAGE: Filling up the fat super block (file: inode.c/fat_fill_super)");
 	/*
 	 * GFP_KERNEL is ok here, because while we do hold the
 	 * superblock lock, memory pressure can't call back into
